@@ -1,10 +1,8 @@
 name: Docker Image CI
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  schedule:
+    - cron:  '0 4 * * 1'
 
 jobs:
 
@@ -14,8 +12,15 @@ jobs:
 
     steps:
 
+    - name: Check if update available
+      id: check
+      uses: lucacome/docker-image-update-checker@v1
+      with:
+        base-image: amazoncorretto:8-alpine-jdk
+        image: cccars/hah:latest
     - name: Checkout
       uses: actions/checkout@v4
+      if: steps.check.outputs.needs-updating == 'true'
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@v5
@@ -23,17 +28,21 @@ jobs:
         images: cccars/hah
         tags: |
           type=raw,value=latest
+      if: steps.check.outputs.needs-updating == 'true'
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+      if: steps.check.outputs.needs-updating == 'true'
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+      if: steps.check.outputs.needs-updating == 'true'
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
         context: .
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        labels: ${{ steps.meta.outputs.labels }
+      if: steps.check.outputs.needs-updating == 'true'
