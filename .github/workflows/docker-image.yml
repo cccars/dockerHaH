@@ -1,4 +1,4 @@
-name: cron image build
+name: Cron Build
 
 on:
   schedule:
